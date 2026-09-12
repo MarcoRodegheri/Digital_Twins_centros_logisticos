@@ -1,12 +1,14 @@
 <div align="center">
 
-# Gêmeos Digitais em Centros Logísticos
+# Digital Twins para a Organização de Operações em Centros Logísticos
 
-### Simulação de Digital Twin aplicada à operação de remanejamento de contêineres
+### Simulação de Gêmeo Digital para eliminar "contêineres fantasma" em operações de remanejamento
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Concluído-success?style=for-the-badge)
 ![PUCRS](https://img.shields.io/badge/PUCRS-Prática_em_Pesquisa-00d9ff?style=for-the-badge)
+
+[![Artigo Completo](https://img.shields.io/badge/📄_Artigo_Completo-PDF-7F5AF0?style=for-the-badge)](./Paper.pdf)
 
 </div>
 
@@ -16,25 +18,43 @@
 
 Projeto desenvolvido na disciplina de **Prática em Pesquisa** (PUCRS), com o objetivo de reproduzir um estudo de pós-graduação sobre a aplicação de **Gêmeos Digitais (Digital Twins)** em centros logísticos.
 
-O desafio central era mitigar a ocorrência de **"contêineres fantasma"** — situação causada por erros humanos, que desorganiza inventários e localizações de contêineres durante a operação de remanejamento (*rehandling*), gerando inconsistências críticas em portos, galpões e armazéns.
+Em operações de remanejamento (*rehandling*) — quando contêineres superiores precisam ser removidos para liberar acesso aos inferiores — erros humanos no registro da nova posição de uma carga geram **"contêineres fantasma"**: unidades cuja localização física deixa de coincidir com o que está registrado no sistema. Segundo a ABRAPPE (2023), falhas operacionais desse tipo causam um prejuízo estimado em **R$ 3,36 bilhões por ano** ao mercado brasileiro.
 
-A solução utiliza um framework de Gêmeos Digitais como ferramenta de auxílio em tempo real para os operadores, impedindo que erros ocorram no momento de atualizar as novas posições dos contêineres remanejados — trazendo mais segurança, previsibilidade e eficiência para a operação.
+Este projeto propõe reduzir esses eventos através de uma arquitetura de Digital Twin: um modelo virtual continuamente sincronizado com o ambiente físico, que atua como guia inteligente para os operadores e evita erros de posicionamento durante o remanejamento.
 
->  O projeto foi apresentado em pitch a um diretor da **Hewlett-Packard (HP)**, além de ter resultado em um artigo científico completo (disponível neste repositório em [`Paper.pdf`](./Paper.pdf)).
+>  O projeto foi apresentado em pitch a um diretor da **Hewlett-Packard (HP)** e resultou no artigo científico completo, disponível neste repositório em [`Paper.pdf`](./Paper.pdf).
 
-## Como funciona
+## Arquitetura da solução
 
-O repositório contém os algoritmos de geração de dados sintéticos que alimentam a simulação do Digital Twin, cada um responsável por replicar o comportamento de um componente real do centro logístico:
+A solução foi estruturada em três camadas:
+
+1. **Modelagem do ambiente físico** — representação digital do centro logístico através de três entidades principais: **edifícios** (posição, identificação RFID e capacidade máxima de empilhamento), **contêineres** (identificação, posição tridimensional e edifício associado) e a **empilhadeira** (localização, tarefa em execução e estado operacional). O ambiente também modela uma área de entrega, uma área de armazenamento temporário no solo e uma base operacional.
+2. **Simulação de sensores e eventos** — algoritmos que geram as leituras RFID (edifícios e contêineres) e os eventos operacionais correspondentes.
+3. **Máquina de estados finitos** — coordena as etapas executadas pela empilhadeira: deslocamento, validação RFID, remanejamento de cargas, verificação de capacidade, reorganização, entrega do contêiner e retorno à base.
+
+A comunicação entre as camadas ocorre pelo estado das entidades armazenadas no próprio Digital Twin, permitindo que os algoritmos compartilhem informação continuamente. Os eventos gerados também são exportados em JSON via HTTP para um serviço externo, possibilitando o acompanhamento das operações em tempo real.
+
+## Algoritmos do repositório
 
 | Script | Responsabilidade |
 |---|---|
-| `forklift_simulating_movement.py` | Simula a movimentação da empilhadeira entre a área base, a área de picking e o solo, incluindo a máquina de estados do equipamento |
-| `containers_rfid_reader.py` | Simula a leitura RFID de contêineres pela empilhadeira, calculando distância e força de sinal (RSSI) em tempo real |
-| `building_rfid_reader.py` | Simula a leitura RFID de identificação do galpão/armazém em que a empilhadeira está operando |
-| `building_capacity_monitor.py` | Monitora a ocupação de cada galpão e identifica contêineres em excesso acima da altura máxima permitida — o núcleo da detecção de inconsistências |
+| `forklift_simulating_movement.py` | Controla a navegação da empilhadeira: calcula a distância euclidiana até o destino (edifício de origem, armazenamento temporário, área de entrega, solo ou base) e atualiza sua posição a cada execução |
+| `containers_rfid_reader.py` | Simula a leitura RFID de contêineres: identifica os contêineres do edifício validado, sua posição na pilha e se há unidades acima do alvo, calculando distância e força de sinal (RSSI) |
+| `building_rfid_reader.py` | Simula a leitura RFID de identificação do edifício: calcula a intensidade do sinal em função da distância e valida qual estrutura está sendo acessada pela empilhadeira |
+| `building_capacity_monitor.py` | Verifica a ocupação de cada edifício frente à capacidade máxima e identifica contêineres excedentes — o mecanismo central de **detecção de contêineres fantasma** |
 | `stock_request.py` | Gera requisições sintéticas de movimentação de estoque, disparando o deslocamento da empilhadeira até o contêiner solicitado |
 
-Esses algoritmos rodam sobre o framework de Gêmeos Digitais (pacote `Centro_Logistico.dtpkg`), que mantém o estado consolidado de cada instância (empilhadeira, contêineres, galpões) e permite consultar e atualizar esse estado em tempo real — permitindo testar cenários de erro sem necessidade de dispositivos físicos reais.
+Esses algoritmos rodam sobre o framework de Gêmeos Digitais (pacote `Centro_Logistico.dtpkg`), desenvolvido por Leite et al. — um framework genérico e orientado a metadados que abstrai a complexidade de infraestrutura de TI por meio de configurações declarativas, permitindo testar cenários de erro sem necessidade de dispositivos físicos reais.
+
+## Resultados
+
+- A localização dos contêineres passou a ser **atualizada automaticamente** a cada evento RFID, eliminando a necessidade de registro manual de movimentações — a principal causa da divergência entre o mundo físico e os sistemas de controle.
+- O sistema identificou em tempo real situações de **violação de capacidade** (excesso de contêineres acima do limite de um edifício), gerando alertas e realocando automaticamente as unidades excedentes para edifícios com maior espaço livre.
+- A sincronização contínua entre ambiente físico e virtual se manteve consistente mesmo em cenários com múltiplas operações de remanejamento simultâneas, preservando a rastreabilidade da carga do início ao fim da operação.
+
+## Trabalhos futuros
+
+O artigo aponta como próximos passos: permitir mais de um contêiner alocado temporariamente no solo, viabilizar remanejamento em áreas de borda da rua, e validar a arquitetura em um ambiente físico real com sensores IoT e hardware de telemetria.
 
 ## Estrutura do repositório
 
@@ -52,6 +72,7 @@ Esses algoritmos rodam sobre o framework de Gêmeos Digitais (pacote `Centro_Log
 
 ## Créditos
 
-- **Liderança e desenvolvimento:** Marco Antônio De Carli Rodegheri — concepção das ideias, abordagem e execução da pesquisa, redação científica, coordenação do planejamento e das entregas da equipe, e apresentação do pitch final.
+- **Liderança:** Marco Antônio De Carli Rodegheri — apresentação do pitch final.
+- **Equipe de pesquisa:** Bernardo Garcia, Lucas Lorenzi, Luiz H. S. Confortin, Roger R. Ehlert
 - **Orientação:** Prof. Fabiano Hessel (PUCRS)
-- **Agradecimento especial:** ao mestrando **Alex Elias**, que disponibilizou o framework que possibilitou a simulação do Digital Twin sem necessidade de dispositivos físicos reais.
+- **Framework de Digital Twin:** desenvolvido por Alex E. G. Leite, J. Venturini e F. Hessel — *"A Generic and Extensible Digital Twin Framework for Industrial IoT Environments"* (AINA, 2026)
