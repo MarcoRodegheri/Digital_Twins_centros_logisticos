@@ -67,7 +67,8 @@ O artigo aponta como próximos passos: permitir mais de um contêiner alocado te
 │   └── stock_request.py
 ├── Centro_Logistico.dtpkg        # Pacote do experimento no DT Framework
 ├── Modelagem_Empilhadeira.pdf    # Modelagem da máquina de estados da empilhadeira
-└── Paper.pdf                     # Artigo científico completo do projeto
+├── Paper.pdf                     # Artigo científico completo do projeto
+└── Video_Funcionamento.mp4       # Vídeo com resultado do experimento
 ```
 
 ## Créditos
