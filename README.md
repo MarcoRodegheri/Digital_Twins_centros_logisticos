@@ -5,6 +5,7 @@
 ### Simulação de Gêmeo Digital para eliminar "contêineres fantasma" em operações de remanejamento
 
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Digital Twin Framework](https://img.shields.io/badge/Digital_Twin_Framework-Leite_et_al.-7F5AF0?style=for-the-badge)
 [![Artigo Completo](https://img.shields.io/badge/📄_Artigo_Completo-PDF-7F5AF0?style=for-the-badge)](./Paper.pdf)
 
 </div>
